@@ -24,6 +24,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
+# 验证端口号是否合法
+def validate_port(port: int) -> bool:
+    return isinstance(port, int) and 1 <= port <= 65535
+
 # 设置日志目录
 user_dir = os.path.dirname(os.path.abspath(__file__))
 log_dir = os.path.join(user_dir, "logs")
@@ -90,6 +94,10 @@ class InstanceInfo(BaseModel):
 def start_instance(command: str, instance_id: str, name: Optional[str] = None, port: Optional[int] = None, did: Optional[str] = None, url: Optional[str] = None) -> bool:
     # 如果指定了端口，先检查并清理该端口
     if port:
+        # 验证端口号是否合法
+        if not validate_port(port):
+            print(f"无效的端口号: {port}")
+            return False
         print(f"检查端口 {port} 是否被占用")
         # 尝试终止使用该端口的进程
         if not kill_processes_by_port(port):
@@ -211,6 +219,10 @@ def read_output(instance_id: str, process: subprocess.Popen):
 def kill_processes_by_port(port: int) -> bool:
     try:
         # 查找使用指定端口的进程
+        # 验证端口号是否合法
+        if not validate_port(port):
+            print(f"无效的端口号: {port}")
+            return True
         cmd = ["lsof", "-i", f":{port}"]
         result = subprocess.run(cmd, capture_output=True, text=True)
         

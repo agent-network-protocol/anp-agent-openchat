@@ -346,7 +346,7 @@ class SimpleNodeSession:
             return ''
 
         if json_data['secretKeyId'] != self.short_term_key['secret_key_id']:
-            logging.error(f"Key ID mismatch: {json_data['secretKeyId']} != {self.short_term_key['secret_key_id']}")
+            logging.error("Key ID mismatch detected between the received data and the expected key.")
             return ''
 
         encrypted_data = json_data['encryptedData']

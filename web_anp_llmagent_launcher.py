@@ -68,6 +68,13 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 # 数据模型
+# 定义允许的命令
+ALLOWED_COMMANDS = {
+    "start": "start",
+    "stop": "stop",
+    "status": "status"
+}
+
 class InstanceCreate(BaseModel):
     command: str
     name: Optional[str] = None
@@ -95,7 +102,11 @@ def start_instance(command: str, instance_id: str, name: Optional[str] = None, p
         if not kill_processes_by_port(port):
             print(f"无法清理端口 {port}，启动实例可能会失败")
     
-    cmd = [sys.executable, os.path.join(user_dir, "anp_llmagent.py"), command]
+    # 验证命令是否合法
+    if command not in ALLOWED_COMMANDS:
+        raise ValueError(f"无效的命令: {command}")
+    
+    cmd = [sys.executable, os.path.join(user_dir, "anp_llmagent.py"), ALLOWED_COMMANDS[command]]
     
     if command == "agent" and name:
         # 修正：使用-u参数传递智能体名称
@@ -431,15 +442,10 @@ async def websocket_endpoint(websocket: WebSocket):
 # REST API
 @app.post("/api/instances", response_model=InstanceInfo)
 async def create_instance(instance: InstanceCreate):
-    instance_id = str(uuid.uuid4())
-    success = start_instance(
-        command=instance.command,
-        instance_id=instance_id,
-        name=instance.name,
-        port=instance.port,
-        did=instance.did,
-        url=instance.url
-    )
+    # 验证命令是否合法
+    if instance.command not in ALLOWED_COMMANDS:
+        raise HTTPException(status_code=400, detail=f"无效的命令: {instance.command}")
+    
     
     if not success:
         raise HTTPException(status_code=500, detail="启动实例失败")
